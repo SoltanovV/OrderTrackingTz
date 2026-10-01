@@ -2,7 +2,7 @@
 
 ## Запуск через Docker
 
-Установите и запустите Docker Desktop в режиме Linux containers. Выполняйте команды из папки с этим README и `compose.yaml`.
+Выполняйте команды из папки с этим README и `compose.yaml`.
 
 ```sh
 docker compose -f compose.yaml up --build -d
@@ -26,5 +26,5 @@ docker compose -f compose.yaml down
 - **OrderTracking.Application** — сценарии работы с заказами и интерфейсы зависимостей.
 - **OrderTracking.Infrastructure** — EF Core, PostgreSQL, миграции и обмен событиями через RabbitMQ.
 - **OrderTracking.Tests** — тесты backend.
-- **frontend** — интерфейс на React и TypeScript, отслеживание заказов через Zustand.
-- **sql** — отдельное SQL-задание: функция поденных сумм платежей и проверочные скрипты.
+- **frontend** — интерфейс на React и TypeScript отслеживание заказов через Zustand.
+- **sql** — SQL-задание: функция поденных сумм платежей и проверочные скрипты.

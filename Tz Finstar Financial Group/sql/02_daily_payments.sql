@@ -1,5 +1,3 @@
--- Inclusive date interval. Empty/reversed/NULL intervals return no rows.
--- A nonrecursive tally covers the entire SQL Server date range (3,652,059 days).
 CREATE OR ALTER FUNCTION dbo.GetClientDailyPayments
 (
     @ClientId bigint,

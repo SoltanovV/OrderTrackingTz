@@ -1,5 +1,3 @@
--- Execute after 01_schema.sql and 02_daily_payments.sql, in a dedicated test DB.
--- All fixtures are rolled back, including on failure.
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 BEGIN TRY

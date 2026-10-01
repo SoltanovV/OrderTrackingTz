@@ -1,4 +1,3 @@
--- SQL Server 2016 SP1+; run in a dedicated database for the second assignment.
 IF OBJECT_ID(N'dbo.ClientPayments', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ClientPayments
