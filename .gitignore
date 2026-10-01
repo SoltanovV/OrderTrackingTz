@@ -1,6 +1,11 @@
 bin/
 obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+TestResults/
+.env
+*.user
+.tools/
+.artifacts/
 .idea/
