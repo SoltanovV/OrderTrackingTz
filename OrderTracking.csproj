@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>OrderTracking</RootNamespace>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <DockerfileTag>order-tracking-backend</DockerfileTag>
+        <DockerfileContext>.</DockerfileContext>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <WarningsAsErrors>$(WarningsAsErrors);CS1591</WarningsAsErrors>
+        <DefaultItemExcludes>$(DefaultItemExcludes);.artifacts\**;frontend\**;tests\**</DefaultItemExcludes>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" PrivateAssets="all" />
+        <ProjectReference Include="Application/OrderTracking.Application.csproj" />
+        <ProjectReference Include="Infrastructure/OrderTracking.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Domain\**;Application\**;Infrastructure\**;tests\**;frontend\**" />
+      <Content Remove="Domain\**;Application\**;Infrastructure\**;tests\**;frontend\**" />
+      <None Remove="Domain\**;Application\**;Infrastructure\**;tests\**;frontend\node_modules\**" />
+    </ItemGroup>
+
+</Project>

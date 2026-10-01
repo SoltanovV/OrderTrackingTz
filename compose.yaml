@@ -1,0 +1,82 @@
+name: order-tracking
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orders_dev}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders -d orders"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: orders
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-orders_dev}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    image: order-tracking-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Orders: "Host=postgres;Port=5432;Database=orders;Username=orders;Password=${POSTGRES_PASSWORD:-orders_dev}"
+      RabbitMq__HostName: rabbitmq
+      RabbitMq__UserName: orders
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:-orders_dev}
+    ports:
+      - "127.0.0.1:5268:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: order-tracking-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend
+
+  sqlserver:
+    profiles: ["sql"]
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${SQLSERVER_PASSWORD:-OrdersDev_2026!}
+    ports:
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./sql:/scripts:ro
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  sqlserver-data:
