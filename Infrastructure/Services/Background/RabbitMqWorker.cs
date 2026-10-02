@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OrderTracking.Application.Models.Events;
 using OrderTracking.Application.Services.Interface;
 using OrderTracking.Infrastructure.Models.Settings;

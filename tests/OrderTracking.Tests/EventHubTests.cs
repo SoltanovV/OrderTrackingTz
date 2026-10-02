@@ -1,19 +1,16 @@
-using OrderTracking.Application.Models.Response;
 using OrderTracking.Application.Models.Events;
 using OrderTracking.Application.Utilities;
 using OrderTracking.Domain.Models.Entity;
-using OrderTracking.Domain.Models.Enums;
-using OrderTracking.Infrastructure.Persistence;
 using OrderTracking.Infrastructure.Services;
-using OrderTracking.Infrastructure.Services.Background;
-using OrderTracking.Infrastructure.Utilities;
 using Xunit;
 
 namespace OrderTracking.Tests;
 
+/// <summary>Доставка событий подписчикам и защита от переполнения их буферов.</summary>
 public sealed class EventHubTests
 {
-    [Fact]
+    /// <summary>Проверяет выбор подписчиков по заказу и закрытие переполненного буфера без отключения остальных клиентов.</summary>
+    [Fact(DisplayName = "Фильтрация событий и изоляция медленных подписчиков")]
     public void BroadcastFiltersSubscriptionsAndIsolatesSlowClients()
     {
         var hub = new EventHub();
@@ -26,7 +23,6 @@ public sealed class EventHubTests
         Assert.True(all.Queue.Reader.TryRead(out _));
         Assert.True(matching.Queue.Reader.TryRead(out _));
         Assert.False(unrelated.Queue.Reader.TryRead(out _));
-        // Queue overflow terminates only this client's stream, forcing snapshot resync.
         for (var i = 0; i < 129; i++) hub.Publish(message);
         Assert.False(all.Queue.Writer.TryWrite(message));
         Assert.True(unrelated.Queue.Writer.TryWrite(message));

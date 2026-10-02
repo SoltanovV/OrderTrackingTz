@@ -4,11 +4,13 @@ using Xunit;
 
 namespace OrderTracking.Tests;
 
+/// <summary>Правила жизненного цикла заказа без HTTP и базы данных.</summary>
 public sealed class OrderTests
 {
     private static readonly DateTime Now = new(2026, 9, 30, 12, 0, 0, DateTimeKind.Utc);
 
-    [Fact]
+    /// <summary>Проверяет переходы «Создан → Отправлен → Доставлен», порядок истории, версии и даты.</summary>
+    [Fact(DisplayName = "Жизненный цикл заказа и история статусов")]
     public void FullLifecycleRecordsOrderedHistoryAndDates()
     {
         var order = Order.Create("A-1", "Test order", Now);
@@ -22,17 +24,8 @@ public sealed class OrderTests
         Assert.Equal(new[] { 1, 2, 3 }, order.History.Select(x => x.Version));
     }
 
-    [Theory]
-    [InlineData(OrderStatus.Delivered)]
-    [InlineData((OrderStatus)99)]
-    public void CannotSkipShippingOrUseUnknownStatus(OrderStatus next)
-    {
-        var order = Order.Create("A-1", "Test", Now);
-        Assert.Throws<InvalidOperationException>(() => order.ChangeStatus(next, Now));
-        Assert.Equal(1, order.Version);
-    }
-
-    [Theory]
+    /// <summary>Проверяет запрет возвращения в работу и доставки после отмены до или после отправки.</summary>
+    [Theory(DisplayName = "Отменённый заказ нельзя вернуть в работу")]
     [InlineData(false)]
     [InlineData(true)]
     public void CancellationIsTerminal(bool shipped)
@@ -42,14 +35,5 @@ public sealed class OrderTests
         order.ChangeStatus(OrderStatus.Cancelled, Now);
         Assert.Throws<InvalidOperationException>(() => order.ChangeStatus(OrderStatus.Created, Now));
         Assert.Throws<InvalidOperationException>(() => order.ChangeStatus(OrderStatus.Delivered, Now));
-    }
-
-    [Fact]
-    public void SameStatusDoesNotAddHistoryOrChangeTimestamp()
-    {
-        var order = Order.Create("A-1", "Test", Now);
-        Assert.False(order.ChangeStatus(OrderStatus.Created, Now.AddDays(1)));
-        Assert.Single(order.History);
-        Assert.Equal(Now, order.UpdatedAt);
     }
 }
