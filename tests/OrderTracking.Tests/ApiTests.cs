@@ -10,6 +10,7 @@ using OrderTracking.Application.Utilities;
 using OrderTracking.Domain.Models.Entity;
 using OrderTracking.Domain.Models.Enums;
 using OrderTracking.Infrastructure.Persistence;
+using OrderTracking.Infrastructure.Models.Settings;
 using OrderTracking.Infrastructure.Services;
 using OrderTracking.Infrastructure.Services.Background;
 using OrderTracking.Infrastructure.Utilities;
@@ -96,6 +97,8 @@ public sealed class ApiTests(TestHost host) : IClassFixture<TestHost>
     }
 
     [Theory]
+    [InlineData("{\"version\":1}")]
+    [InlineData("{\"status\":null,\"version\":1}")]
     [InlineData("{\"status\":\"Unknown\",\"version\":1}")]
     [InlineData("{\"status\":88,\"version\":1}")]
     [InlineData("{\"status\":\"Shipped\",\"version\":0}")]
@@ -104,6 +107,10 @@ public sealed class ApiTests(TestHost host) : IClassFixture<TestHost>
         var order = await Create();
         var response = await client.PatchAsync($"/api/orders/{order.Id}/status", new StringContent(body, Encoding.UTF8, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var latest = (await client.GetFromJsonAsync<OrderDto>($"/api/orders/{order.Id}", Json))!;
+        Assert.Equal(OrderStatus.Created, latest.Status);
+        Assert.Equal(1, latest.Version);
+        Assert.Single(latest.History);
     }
 
     [Fact]
@@ -132,6 +139,38 @@ public sealed class ApiTests(TestHost host) : IClassFixture<TestHost>
     }
 
     [Fact]
+    public async Task SseReportsBrokerDisconnectAndRecoveryWithoutReconnect()
+    {
+        var broker = host.Services.GetRequiredService<BrokerStatus>();
+        var original = broker.Connected;
+        try
+        {
+            broker.Connected = true;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var response = await client.GetAsync("/api/events", HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+            using var reader = new StreamReader(stream);
+            Assert.Equal("retry: 3000", await reader.ReadLineAsync(timeout.Token));
+            Assert.Equal("event: ready", await reader.ReadLineAsync(timeout.Token));
+            Assert.Contains("\"brokerConnected\":true", await reader.ReadLineAsync(timeout.Token));
+            Assert.Equal("", await reader.ReadLineAsync(timeout.Token));
+
+            broker.Connected = false;
+            Assert.Equal("event: heartbeat", await reader.ReadLineAsync(timeout.Token));
+            Assert.Contains("\"brokerConnected\":false", await reader.ReadLineAsync(timeout.Token));
+            Assert.Equal("", await reader.ReadLineAsync(timeout.Token));
+
+            broker.Connected = true;
+            Assert.Equal("event: heartbeat", await reader.ReadLineAsync(timeout.Token));
+            Assert.Contains("\"brokerConnected\":true", await reader.ReadLineAsync(timeout.Token));
+        }
+        finally
+        {
+            broker.Connected = original;
+        }
+    }
+
+    [Fact]
     public async Task SseStreamsReadyThenOrderEvent()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -145,7 +184,7 @@ public sealed class ApiTests(TestHost host) : IClassFixture<TestHost>
         Assert.Equal("", await reader.ReadLineAsync(timeout.Token));
         var order = await Create();
         host.Services.GetRequiredService<EventHub>().Publish(new OrderChanged(Guid.NewGuid(), order));
-        Assert.Equal("event: order-changed", await reader.ReadLineAsync(timeout.Token));
+        while (await reader.ReadLineAsync(timeout.Token) is { } line && line != "event: order-changed") { }
         Assert.Contains(order.Id.ToString(), await reader.ReadLineAsync(timeout.Token));
     }
 }

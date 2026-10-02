@@ -29,7 +29,7 @@ public sealed class EventsController(IOrderEventStream events, IBrokerStatus bro
             while (!ct.IsCancellationRequested)
             {
                 using var heartbeat = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                heartbeat.CancelAfter(TimeSpan.FromSeconds(10));
+                heartbeat.CancelAfter(TimeSpan.FromSeconds(1));
                 try
                 {
                     if (!await subscription.Reader.WaitToReadAsync(heartbeat.Token)) break;

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using OrderTracking.Domain.Models.Enums;
 
 namespace OrderTracking.Application.Models.Request;
@@ -7,6 +8,7 @@ namespace OrderTracking.Application.Models.Request;
 public sealed class ChangeStatusRequest
 {
     /// <summary>Новый статус заказа.</summary>
+    [JsonRequired]
     [EnumDataType(typeof(OrderStatus), ErrorMessage = "Неизвестный статус.")]
     public OrderStatus Status { get; init; }
 

@@ -6,8 +6,11 @@ export function useLiveEvents() {
     const source = new EventSource('/api/events');
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => useLive.getState().refresh(), 150);
+      if (refreshTimer !== undefined) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        useLive.getState().refresh();
+      }, 150);
     };
     const connection = (event: MessageEvent) => {
       const previous = useLive.getState().connection;
