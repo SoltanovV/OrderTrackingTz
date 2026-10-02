@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OrderTracking.Application.Models.Events;
 using OrderTracking.Application.Services.Interface;
 using OrderTracking.Infrastructure.Models.Settings;
@@ -34,10 +34,13 @@ public sealed class RabbitMqWorker(IServiceScopeFactory scopes, IOptions<RabbitM
                     UserName = settings.UserName,
                     Password = settings.Password,
                     AutomaticRecoveryEnabled = false,
-                    RequestedConnectionTimeout = TimeSpan.FromSeconds(5)
+                    RequestedConnectionTimeout = TimeSpan.FromSeconds(5),
+                    RequestedHeartbeat = TimeSpan.FromSeconds(5)
                 };
                 await using var connection = await factory.CreateConnectionAsync(stoppingToken);
+                connection.ConnectionShutdownAsync += OnBrokerShutdownAsync;
                 await using var consumerChannel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                consumerChannel.ChannelShutdownAsync += OnBrokerShutdownAsync;
                 await consumerChannel.ExchangeDeclareAsync(settings.Exchange, ExchangeType.Fanout, durable: true, cancellationToken: stoppingToken);
                 var queue = await consumerChannel.QueueDeclareAsync(cancellationToken: stoppingToken);
                 await consumerChannel.QueueBindAsync(queue.QueueName, settings.Exchange, "", cancellationToken: stoppingToken);
@@ -61,7 +64,10 @@ public sealed class RabbitMqWorker(IServiceScopeFactory scopes, IOptions<RabbitM
                 await consumerChannel.BasicConsumeAsync(queue.QueueName, false, consumer, stoppingToken);
                 await using var publisher = await connection.CreateChannelAsync(
                     new CreateChannelOptions(publisherConfirmationsEnabled: true, publisherConfirmationTrackingEnabled: true), stoppingToken);
+                publisher.ChannelShutdownAsync += OnBrokerShutdownAsync;
                 status.Connected = true;
+                if (!connection.IsOpen || !consumerChannel.IsOpen || !publisher.IsOpen)
+                    status.Connected = false;
                 logger.LogInformation("RabbitMQ connected; consuming queue {Queue}", queue.QueueName);
                 while (connection.IsOpen && consumerChannel.IsOpen && publisher.IsOpen && !stoppingToken.IsCancellationRequested)
                 {
@@ -76,6 +82,12 @@ public sealed class RabbitMqWorker(IServiceScopeFactory scopes, IOptions<RabbitM
             try { await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken); }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
         }
+    }
+
+    private Task OnBrokerShutdownAsync(object sender, ShutdownEventArgs args)
+    {
+        status.Connected = false;
+        return Task.CompletedTask;
     }
 
     private async Task PublishPendingAsync(IChannel channel, string exchange, CancellationToken ct)

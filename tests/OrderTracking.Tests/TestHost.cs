@@ -6,12 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using OrderTracking.Infrastructure.Persistence;
-using OrderTracking.Infrastructure.Services;
 using OrderTracking.Infrastructure.Services.Background;
-using OrderTracking.Infrastructure.Utilities;
 
 namespace OrderTracking.Tests;
 
+/// <summary>Тестовый сервер с SQLite в памяти; реальный фоновый сервис RabbitMQ отключён.</summary>
 public sealed class TestHost : WebApplicationFactory<Program>
 {
     private readonly SqliteConnection connection = new("DataSource=:memory:");
