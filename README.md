@@ -27,4 +27,4 @@ docker compose -f compose.yaml down
 - **OrderTracking.Infrastructure** — EF Core, PostgreSQL, миграции и обмен событиями через RabbitMQ.
 - **OrderTracking.Tests** — тесты backend.
 - **frontend** — интерфейс на React и TypeScript отслеживание заказов через Zustand.
-- **sql** — SQL-задание: функция поденных сумм платежей и проверочные скрипты.
+- **sql** — SQL-задание: таблица и функция поденных сумм платежей.

@@ -63,20 +63,6 @@ services:
     depends_on:
       - backend
 
-  sqlserver:
-    profiles: ["sql"]
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_PID: Developer
-      MSSQL_SA_PASSWORD: ${SQLSERVER_PASSWORD:-OrdersDev_2026!}
-    ports:
-      - "127.0.0.1:1433:1433"
-    volumes:
-      - sqlserver-data:/var/opt/mssql
-      - ./sql:/scripts:ro
-
 volumes:
   postgres-data:
   rabbitmq-data:
-  sqlserver-data:
